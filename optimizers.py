@@ -10,7 +10,6 @@ def get_direction(grads):
     directions = [-1.0 * grads[1], -1.0 * jnp.dot(jnp.linalg.inv(grads[2]), grads[1])]
     denom = 1.0
     sum_terms = [grads[2]]
-    prev_direction = 1.0
     for i, grad in enumerate(grads[3:], 2):
         denom = denom * i
         intermediates = [grad / denom]

@@ -1,3 +1,4 @@
+import time
 from functools import partial
 import jax
 import jax.numpy as jnp
@@ -85,14 +86,46 @@ def linear_regression():
     opt_fn = partial(linear_regression_loss, X=X, y=y, reg=reg, power=loss_power)
     run_opt(opt_fn, w)
 
-def run_opt(opt_fn, w):
 
+
+def logistic_regression():
+    key = jax.random.PRNGKey(0)
+    X, y = data.loader.load_iris()
+
+    # y = y.at[y==1].set(0)
+
+    n_features = X.shape[1]
+    n_classes = jnp.unique(y).shape[0]
+    n_params = n_features * n_classes
+    reg = 0.2
+ 
+    w = jax.random.normal(key, shape=(n_features, n_classes)) * 0.01
+    w = jnp.array([[-0.15478352,0.21257754,-0.40969526],[1.54926772,0.65786876,1.17450817],[-0.49462997,0.54060939,-0.04389029],[-0.02852532,-2.22300611,0.74312746],[0.9482618,0.45170073,0.81152022]])
+
+    if n_classes == 2:
+        w = jnp.zeros((n_features, 1))
+        opt_fn = partial(binary_logistic_regression_loss, X=X, y=y, reg=reg)
+    else:
+        w = jnp.zeros((n_features, n_classes))
+        opt_fn = partial(logistic_regression_loss, X=X, y=one_hot(y, n_classes), reg=reg)
+
+
+    print(f'fitting on {w.size} parameters')
+    run_opt(opt_fn, w)
+
+
+def run_opt(opt_fn, w):
+    times = []
     gd = GradientDescent(
         fn=opt_fn,
         params=w,
+        alpha=0.001,
+        beta=0.4,
         max_iter=10000
     )
+    start_time = time.time()
     w_gd, values_gd = gd.fit()
+    times.append(time.time() - start_time)
     plt.plot(
         jnp.arange(values_gd.shape[0]),
         jnp.log(values_gd) / jnp.log(100),
@@ -103,11 +136,12 @@ def run_opt(opt_fn, w):
         alpha=0.5,
     )
 
-    orders = [2,3,4,7]
-    colors = ['red', 'green', 'orange', 'purple', 'black']
-    markers = ['X', 'v', '*', '^']
+    orders = [2,3,4,5,7,10,11]
+    colors = ['red', 'green', 'orange', 'purple', 'black', 'cyan', 'magenta']
+    markers = ['X', 'v', '*', '^', '+', '2', '1']
 
     for i, order in enumerate(orders):
+        start_time = time.time()
         if order == 2 : label = "2nd Order (Newton's Method)"
         elif order == 3 : label = "3rd Order (Halley's Method)"
         else: label = f'{order}th Order'
@@ -119,6 +153,8 @@ def run_opt(opt_fn, w):
                         max_iter=25)
 
         w_achoo, values_achoo = achoo.fit()
+        times.append(time.time() - start_time)
+
         plt.plot(
             jnp.arange(values_achoo.shape[0]),
             jnp.log(values_achoo) / jnp.log(100),
@@ -131,30 +167,7 @@ def run_opt(opt_fn, w):
 
     plt.legend()
     plt.show()
-
-
-
-def logistic_regression():
-    key = jax.random.PRNGKey(0)
-    X, y = data.loader.load_iris()
-
-    y = y.at[y==1].set(0)
-
-    n_features = X.shape[1]
-    n_classes = jnp.unique(y).shape[0]
-    n_params = n_features * n_classes
-    reg = 0.1
- 
-    w = jax.random.normal(key, shape=(n_features, n_classes)) * 0.01
-    # w = jnp.array([[-0.15478352,0.21257754,-0.40969526],[1.54926772,0.65786876,1.17450817],[-0.49462997,0.54060939,-0.04389029],[-0.02852532,-2.22300611,0.74312746],[0.9482618,0.45170073,0.81152022]])
-    w = jnp.zeros((n_features, n_classes))
-    opt_fn = partial(logistic_regression_loss, X=X, y=one_hot(y, n_classes), reg=reg)
-    
-    w = jnp.zeros((n_features, 1))
-    opt_fn = partial(binary_logistic_regression_loss, X=X, y=y, reg=reg)
-
-    print(f'fitting on {w.size} parameters')
-    run_opt(opt_fn, w)
+    print(times)
 
 
 
